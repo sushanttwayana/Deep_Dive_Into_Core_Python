@@ -1,0 +1,6 @@
+Hello, Weclome to Python World.
+Python is good as anything.
+Python is an interpreted language
+Global interpreter Lock
+Python is dynamically typed.
+Java is complicated haha!!!!!!!!!!!
