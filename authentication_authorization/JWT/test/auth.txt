@@ -9,7 +9,6 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from starlette import status
-from fastapi import Form
 
 router = APIRouter(
     prefix='/auth',
@@ -31,23 +30,6 @@ class CreateUserRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
-    
-class CustomOAuth2PasswordRequestForm:
-    def __init__(
-        self,
-        username: str = Form(..., title="Username or Phone Number"),
-        password: str = Form(...),
-        scope: str = Form(""),
-        grant_type: str = Form(None, regex="password"),
-        client_id: str = Form(None),
-        client_secret: str = Form(None)
-    ):
-        self.username = username
-        self.password = password
-        self.scope = scope
-        self.grant_type = grant_type
-        self.client_id = client_id
-        self.client_secret = client_secret
     
 def get_db():
     db = SessionLocal()
@@ -74,22 +56,21 @@ async def create_user(db: db_dependency, create_user_request: CreateUserRequest)
     
     
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: Annotated[CustomOAuth2PasswordRequestForm, Depends()],
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
                                 db: db_dependency):
 
-    # Use form_data.username as identifier to check username OR phone_number
-    user = authenticate_user(form_data.username, form_data.password, db) 
+    user = authenticate_user(form_data.username, form_data.password, db)
 
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user')
 
-    token = create_access_token(user.username, user.id, user.phone_number, timedelta(minutes=20))
+    token = create_access_token(user.username, user.id, timedelta(minutes=20))
 
     return {'access_token': token, 'token_type': 'bearer'}
 
     
-def authenticate_user(identifier:str, password:str, db):
-    user = db.query(Users).filter((Users.username == identifier) | (Users.phone_number == identifier)).first()
+def authenticate_user(username:str, password:str, db):
+    user = db.query(Users).filter(Users.username == username).first()
     
     if not user:
         return False
@@ -99,9 +80,9 @@ def authenticate_user(identifier:str, password:str, db):
     
     return user
 
-def create_access_token(username:str, user_id:int, phone_number: str, expires_delta:timedelta):
+def create_access_token(username:str, user_id:int, expires_delta:timedelta):
     
-    encode = {'sub':username, 'id':user_id, 'phone_number': phone_number}
+    encode = {'sub':username, 'id':user_id}
     expires = datetime.utcnow() + expires_delta
     encode.update({'exp': expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)  
@@ -112,13 +93,11 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get('sub')
         user_id: int = payload.get('id')
-        phone_number: str = payload.get('phone_number')
-        
-        if None in (username, user_id, phone_number):
+        if username is None or user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail='Could not validate user.')
             
-        return {'username': username, 'id': user_id, 'phone_number': phone_number}
+        return {'username': username, 'id': user_id}
         
     except JWTError:
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED, detail='Could not validate user.')
