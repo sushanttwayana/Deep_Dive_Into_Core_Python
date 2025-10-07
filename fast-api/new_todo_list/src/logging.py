@@ -7,7 +7,7 @@ LOG_FORMAT_DEBUG = "%(levelname)s:%(message)s:%(pathname)s:%(funcName)s:%(lineno
 
 class LogLevels(StrEnum):
     info = "INFO"
-    warn = "WARN"
+    warm = "WARM"  
     error = "ERROR"
     debug = "DEBUG"
 

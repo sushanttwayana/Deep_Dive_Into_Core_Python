@@ -1,9 +1,10 @@
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime, timezone
 import enum
-from ..database.core import Base 
+from src.database.core import Base
+
 
 class Priority(enum.Enum):
     Normal = 0
@@ -11,6 +12,7 @@ class Priority(enum.Enum):
     Medium = 2
     High = 3
     Top = 4
+
 
 class Todo(Base):
     __tablename__ = 'todos'
@@ -25,4 +27,4 @@ class Todo(Base):
     priority = Column(Enum(Priority), nullable=False, default=Priority.Medium)
 
     def __repr__(self):
-        return f"<Todo(description='{self.description}', due_date='{self.due_date}', is_completed={self.is_completed})>"
+        return f"<Todo(description='{self.description}', due_date='{self.due_date}', is_completed= '{self.completed_at})>"
